@@ -63,13 +63,13 @@ class MainActivity : AppCompatActivity() {
     ) { granted ->
         val request = pendingPermissionRequest ?: return@registerForActivityResult
         pendingPermissionRequest = null
-        val allowed = request.resources.filter { resource ->
+        val allowed = captureResources(request).filter { resource ->
             when (resource) {
                 PermissionRequest.RESOURCE_VIDEO_CAPTURE ->
                     granted[Manifest.permission.CAMERA] == true
                 PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
                     granted[Manifest.permission.RECORD_AUDIO] == true
-                else -> true
+                else -> false
             }
         }
         if (allowed.isEmpty()) {
@@ -223,23 +223,35 @@ class MainActivity : AppCompatActivity() {
             request.deny()
             return
         }
+        val allowed = captureResources(request)
+        if (allowed.isEmpty()) {
+            request.deny()
+            return
+        }
         val needed = mutableListOf<String>()
-        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in request.resources) {
+        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in allowed) {
             needed += Manifest.permission.CAMERA
         }
-        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in request.resources) {
+        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in allowed) {
             needed += Manifest.permission.RECORD_AUDIO
         }
         val missing = needed.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isEmpty()) {
-            request.grant(request.resources)
+            request.grant(allowed.toTypedArray())
             return
         }
         pendingPermissionRequest?.deny()
         pendingPermissionRequest = request
         runtimePermissionLauncher.launch(missing.toTypedArray())
+    }
+
+    private fun captureResources(request: PermissionRequest): List<String> {
+        return request.resources.filter { resource ->
+            resource == PermissionRequest.RESOURCE_VIDEO_CAPTURE ||
+                resource == PermissionRequest.RESOURCE_AUDIO_CAPTURE
+        }
     }
 
     private fun launchFileChooser(
