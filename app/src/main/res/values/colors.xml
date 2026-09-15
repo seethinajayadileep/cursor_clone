@@ -1,0 +1,7 @@
+<resources>
+    <color name="background">#0A0A0A</color>
+    <color name="on_background">#F5F5F5</color>
+    <color name="on_background_muted">#A3A3A3</color>
+    <color name="accent">#F54E00</color>
+    <color name="launcher_bg">#111111</color>
+</resources>
