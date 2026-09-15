@@ -32,10 +32,11 @@ object AgentsUrls {
 
     fun isTrustedMediaOrigin(origin: android.net.Uri?): Boolean {
         if (origin == null) return false
-        return isTrustedMediaOrigin(origin.scheme, origin.host)
+        return isTrustedMediaOrigin(origin.scheme, origin.host, origin.port)
     }
 
-    fun isTrustedMediaOrigin(scheme: String?, host: String?): Boolean {
+    fun isTrustedMediaOrigin(scheme: String?, host: String?, port: Int = -1): Boolean {
+        if (!isDefaultHttpsPort(port)) return false
         if (!scheme.equals("https", ignoreCase = true)) return false
         if (host.isNullOrBlank()) return false
         val normalized = host.lowercase()
@@ -46,12 +47,16 @@ object AgentsUrls {
         scheme: String?,
         host: String?,
         path: String?,
-        originalUrl: String?
+        originalUrl: String?,
+        port: Int = -1
     ): String {
-        val normalizedPath = path.orEmpty()
-        val isAgentsPath = normalizedPath == "/agents" || normalizedPath.startsWith("/agents/")
+        val segments = path.orEmpty().split("/")
+        val isAgentsPath =
+            segments.getOrNull(1) == "agents" &&
+                segments.drop(2).none { it == "." || it == ".." }
         return if (
             !originalUrl.isNullOrBlank() &&
+            isDefaultHttpsPort(port) &&
             scheme.equals("https", ignoreCase = true) &&
             isDeepLinkHost(host) &&
             isAgentsPath
@@ -61,4 +66,6 @@ object AgentsUrls {
             HOME
         }
     }
+
+    private fun isDefaultHttpsPort(port: Int): Boolean = port == -1 || port == 443
 }

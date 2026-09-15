@@ -46,6 +46,8 @@ class AgentsUrlsTest {
         assertTrue(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://www.cursor.com")))
         assertFalse(AgentsUrls.isTrustedMediaOrigin(Uri.parse("http://cursor.com/agents")))
         assertFalse(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://github.com")))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://cursor.com:4443/agents")))
+        assertTrue(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://cursor.com:443/agents")))
     }
 
     @Test
@@ -80,6 +82,25 @@ class AgentsUrlsTest {
         assertEquals(
             AgentsUrls.HOME,
             AgentsUrls.resolveIncomingDeepLink("https", "github.com", "/agents", "https://github.com/agents")
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink(
+                "https",
+                "cursor.com",
+                "/agents/../account",
+                "https://cursor.com/agents/../account"
+            )
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink(
+                scheme = "https",
+                host = "cursor.com",
+                path = "/agents",
+                originalUrl = "https://cursor.com:4443/agents",
+                port = 4443
+            )
         )
     }
 }

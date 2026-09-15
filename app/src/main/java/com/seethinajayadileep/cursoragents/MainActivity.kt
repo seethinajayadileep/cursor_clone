@@ -146,7 +146,8 @@ class MainActivity : AppCompatActivity() {
             scheme = data.scheme,
             host = data.host,
             path = data.path,
-            originalUrl = data.toString()
+            originalUrl = data.toString(),
+            port = data.port
         )
     }
 
