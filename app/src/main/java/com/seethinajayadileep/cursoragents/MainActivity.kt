@@ -63,13 +63,13 @@ class MainActivity : AppCompatActivity() {
     ) { granted ->
         val request = pendingPermissionRequest ?: return@registerForActivityResult
         pendingPermissionRequest = null
-        val allowed = request.resources.filter { resource ->
+        val allowed = captureResources(request).filter { resource ->
             when (resource) {
                 PermissionRequest.RESOURCE_VIDEO_CAPTURE ->
                     granted[Manifest.permission.CAMERA] == true
                 PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
                     granted[Manifest.permission.RECORD_AUDIO] == true
-                else -> true
+                else -> false
             }
         }
         if (allowed.isEmpty()) {
@@ -115,9 +115,8 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        if (savedInstanceState != null) {
-            binding.webView.restoreState(savedInstanceState)
-        } else {
+        val restored = savedInstanceState?.let { binding.webView.restoreState(it) }
+        if (restored == null) {
             binding.webView.loadUrl(deepLinkOrHome())
         }
     }
@@ -142,12 +141,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun deepLinkOrHome(): String {
-        val incoming = intent?.data?.toString()
-        return if (!incoming.isNullOrBlank() && AgentsUrls.isAllowedHost(intent?.data?.host)) {
-            incoming
-        } else {
-            AgentsUrls.HOME
-        }
+        val data = intent?.data ?: return AgentsUrls.HOME
+        return AgentsUrls.resolveIncomingDeepLink(
+            scheme = data.scheme,
+            host = data.host,
+            path = data.path,
+            originalUrl = data.toString(),
+            port = data.port
+        )
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -215,22 +216,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePermissionRequest(request: PermissionRequest) {
+        if (!AgentsUrls.isTrustedMediaOrigin(request.origin)) {
+            request.deny()
+            return
+        }
+        val allowed = captureResources(request)
+        if (allowed.isEmpty()) {
+            request.deny()
+            return
+        }
+        if (pendingPermissionRequest != null) {
+            request.deny()
+            return
+        }
         val needed = mutableListOf<String>()
-        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in request.resources) {
+        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in allowed) {
             needed += Manifest.permission.CAMERA
         }
-        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in request.resources) {
+        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in allowed) {
             needed += Manifest.permission.RECORD_AUDIO
         }
         val missing = needed.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isEmpty()) {
-            request.grant(request.resources)
+            request.grant(allowed.toTypedArray())
             return
         }
         pendingPermissionRequest = request
         runtimePermissionLauncher.launch(missing.toTypedArray())
+    }
+
+    private fun captureResources(request: PermissionRequest): List<String> {
+        return request.resources.filter { resource ->
+            resource == PermissionRequest.RESOURCE_VIDEO_CAPTURE ||
+                resource == PermissionRequest.RESOURCE_AUDIO_CAPTURE
+        }
     }
 
     private fun launchFileChooser(
@@ -279,8 +300,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun openExternally(url: String) {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            val intent = if (url.startsWith("intent:")) {
+                Intent.parseUri(url, Intent.URI_INTENT_SCHEME).apply {
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    component = null
+                    selector = null
+                    setPackage(null)
+                }
+            } else {
+                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            }
+            startActivity(intent)
         } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show()
+        } catch (_: java.net.URISyntaxException) {
             Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show()
         }
     }
