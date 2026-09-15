@@ -157,7 +157,6 @@ class MainActivity : AppCompatActivity() {
         binding.webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            databaseEnabled = true
             javaScriptCanOpenWindowsAutomatically = true
             setSupportMultipleWindows(true)
             loadWithOverviewMode = true
