@@ -18,4 +18,17 @@ class AgentsUrlsTest {
         assertTrue(AgentsUrls.isAllowedHost("accounts.google.com"))
         assertTrue(AgentsUrls.isAllowedHost("authenticator.cursor.sh"))
     }
+
+    @Test
+    fun trustedMediaOriginAllowsHttpsCursorHostsOnly() {
+        assertTrue(AgentsUrls.isTrustedMediaOrigin("https", "cursor.com"))
+        assertTrue(AgentsUrls.isTrustedMediaOrigin("HTTPS", "www.cursor.com"))
+        assertTrue(AgentsUrls.isTrustedMediaOrigin("https", "agents.cursor.com"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin("http", "cursor.com"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin("https", "cursor.com.evil.example"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin("https", "notcursor.com"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin("https", "github.com"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin(null, "cursor.com"))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin("https", null))
+    }
 }

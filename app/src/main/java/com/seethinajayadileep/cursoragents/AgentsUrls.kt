@@ -32,8 +32,12 @@ object AgentsUrls {
 
     fun isTrustedMediaOrigin(origin: android.net.Uri?): Boolean {
         if (origin == null) return false
-        if (!origin.scheme.equals("https", ignoreCase = true)) return false
-        val host = origin.host ?: return false
+        return isTrustedMediaOrigin(origin.scheme, origin.host)
+    }
+
+    fun isTrustedMediaOrigin(scheme: String?, host: String?): Boolean {
+        if (!scheme.equals("https", ignoreCase = true)) return false
+        if (host.isNullOrBlank()) return false
         val normalized = host.lowercase()
         return normalized == "cursor.com" || normalized.endsWith(".cursor.com")
     }
