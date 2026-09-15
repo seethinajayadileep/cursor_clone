@@ -95,6 +95,15 @@ class AgentsUrlsTest {
         assertEquals(
             AgentsUrls.HOME,
             AgentsUrls.resolveIncomingDeepLink(
+                "https",
+                "cursor.com",
+                "/agents/\\../account",
+                "https://cursor.com/agents/\\../account"
+            )
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink(
                 scheme = "https",
                 host = "cursor.com",
                 path = "/agents",

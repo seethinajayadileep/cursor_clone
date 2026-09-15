@@ -225,6 +225,10 @@ class MainActivity : AppCompatActivity() {
             request.deny()
             return
         }
+        if (pendingPermissionRequest != null) {
+            request.deny()
+            return
+        }
         val needed = mutableListOf<String>()
         if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in allowed) {
             needed += Manifest.permission.CAMERA
@@ -237,10 +241,6 @@ class MainActivity : AppCompatActivity() {
         }
         if (missing.isEmpty()) {
             request.grant(allowed.toTypedArray())
-            return
-        }
-        if (pendingPermissionRequest != null) {
-            request.deny()
             return
         }
         pendingPermissionRequest = request

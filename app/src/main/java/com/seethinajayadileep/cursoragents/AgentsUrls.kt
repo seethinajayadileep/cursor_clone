@@ -50,7 +50,7 @@ object AgentsUrls {
         originalUrl: String?,
         port: Int = -1
     ): String {
-        val segments = path.orEmpty().split("/")
+        val segments = path.orEmpty().replace('\\', '/').split("/")
         val isAgentsPath =
             segments.getOrNull(1) == "agents" &&
                 segments.drop(2).none { it == "." || it == ".." }
