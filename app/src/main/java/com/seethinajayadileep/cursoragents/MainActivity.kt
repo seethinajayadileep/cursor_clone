@@ -142,16 +142,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun deepLinkOrHome(): String {
         val data = intent?.data ?: return AgentsUrls.HOME
-        val path = data.path.orEmpty()
-        return if (
-            data.scheme.equals("https", ignoreCase = true) &&
-            AgentsUrls.isDeepLinkHost(data.host) &&
-            (path == "/agents" || path.startsWith("/agents/"))
-        ) {
-            data.toString()
-        } else {
-            AgentsUrls.HOME
-        }
+        return AgentsUrls.resolveIncomingDeepLink(
+            scheme = data.scheme,
+            host = data.host,
+            path = data.path,
+            originalUrl = data.toString()
+        )
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -242,7 +238,10 @@ class MainActivity : AppCompatActivity() {
             request.grant(allowed.toTypedArray())
             return
         }
-        pendingPermissionRequest?.deny()
+        if (pendingPermissionRequest != null) {
+            request.deny()
+            return
+        }
         pendingPermissionRequest = request
         runtimePermissionLauncher.launch(missing.toTypedArray())
     }
@@ -305,6 +304,7 @@ class MainActivity : AppCompatActivity() {
                     addCategory(Intent.CATEGORY_BROWSABLE)
                     component = null
                     selector = null
+                    setPackage(null)
                 }
             } else {
                 Intent(Intent.ACTION_VIEW, Uri.parse(url))

@@ -1,9 +1,16 @@
 package com.seethinajayadileep.cursoragents
 
+import android.net.Uri
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class AgentsUrlsTest {
     @Test
     fun deepLinkAllowsCursorAgentsHostOnly() {
@@ -30,5 +37,49 @@ class AgentsUrlsTest {
         assertFalse(AgentsUrls.isTrustedMediaOrigin("https", "github.com"))
         assertFalse(AgentsUrls.isTrustedMediaOrigin(null, "cursor.com"))
         assertFalse(AgentsUrls.isTrustedMediaOrigin("https", null))
+    }
+
+    @Test
+    fun trustedMediaOriginUriOverloadUsesSchemeAndHost() {
+        assertFalse(AgentsUrls.isTrustedMediaOrigin(null as Uri?))
+        assertTrue(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://cursor.com/agents")))
+        assertTrue(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://www.cursor.com")))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin(Uri.parse("http://cursor.com/agents")))
+        assertFalse(AgentsUrls.isTrustedMediaOrigin(Uri.parse("https://github.com")))
+    }
+
+    @Test
+    fun resolveIncomingDeepLinkAcceptsOnlyHttpsAgentsPaths() {
+        val agents = "https://cursor.com/agents"
+        val nested = "https://cursor.com/agents/abc"
+        assertEquals(
+            agents,
+            AgentsUrls.resolveIncomingDeepLink("https", "cursor.com", "/agents", agents)
+        )
+        assertEquals(
+            nested,
+            AgentsUrls.resolveIncomingDeepLink("https", "cursor.com", "/agents/abc", nested)
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink("http", "cursor.com", "/agents", "http://cursor.com/agents")
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink("https", "cursor.com", "/", "https://cursor.com/")
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink(
+                "https",
+                "cursor.com",
+                "/agentship",
+                "https://cursor.com/agentship"
+            )
+        )
+        assertEquals(
+            AgentsUrls.HOME,
+            AgentsUrls.resolveIncomingDeepLink("https", "github.com", "/agents", "https://github.com/agents")
+        )
     }
 }

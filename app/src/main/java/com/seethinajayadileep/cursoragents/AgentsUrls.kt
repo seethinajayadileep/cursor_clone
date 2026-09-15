@@ -41,4 +41,24 @@ object AgentsUrls {
         val normalized = host.lowercase()
         return normalized == "cursor.com" || normalized.endsWith(".cursor.com")
     }
+
+    fun resolveIncomingDeepLink(
+        scheme: String?,
+        host: String?,
+        path: String?,
+        originalUrl: String?
+    ): String {
+        val normalizedPath = path.orEmpty()
+        val isAgentsPath = normalizedPath == "/agents" || normalizedPath.startsWith("/agents/")
+        return if (
+            !originalUrl.isNullOrBlank() &&
+            scheme.equals("https", ignoreCase = true) &&
+            isDeepLinkHost(host) &&
+            isAgentsPath
+        ) {
+            originalUrl
+        } else {
+            HOME
+        }
+    }
 }
