@@ -23,4 +23,18 @@ object AgentsUrls {
         val normalized = host.lowercase()
         return allowedHosts.any { normalized == it || normalized.endsWith(".$it") }
     }
+
+    fun isDeepLinkHost(host: String?): Boolean {
+        if (host.isNullOrBlank()) return false
+        val normalized = host.lowercase()
+        return normalized == "cursor.com" || normalized == "www.cursor.com"
+    }
+
+    fun isTrustedMediaOrigin(origin: android.net.Uri?): Boolean {
+        if (origin == null) return false
+        if (!origin.scheme.equals("https", ignoreCase = true)) return false
+        val host = origin.host ?: return false
+        val normalized = host.lowercase()
+        return normalized == "cursor.com" || normalized.endsWith(".cursor.com")
+    }
 }

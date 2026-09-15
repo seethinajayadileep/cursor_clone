@@ -115,9 +115,8 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        if (savedInstanceState != null) {
-            binding.webView.restoreState(savedInstanceState)
-        } else {
+        val restored = savedInstanceState?.let { binding.webView.restoreState(it) }
+        if (restored == null) {
             binding.webView.loadUrl(deepLinkOrHome())
         }
     }
@@ -142,9 +141,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun deepLinkOrHome(): String {
-        val incoming = intent?.data?.toString()
-        return if (!incoming.isNullOrBlank() && AgentsUrls.isAllowedHost(intent?.data?.host)) {
-            incoming
+        val data = intent?.data ?: return AgentsUrls.HOME
+        val path = data.path.orEmpty()
+        return if (
+            data.scheme.equals("https", ignoreCase = true) &&
+            AgentsUrls.isDeepLinkHost(data.host) &&
+            (path == "/agents" || path.startsWith("/agents/"))
+        ) {
+            data.toString()
         } else {
             AgentsUrls.HOME
         }
@@ -215,6 +219,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handlePermissionRequest(request: PermissionRequest) {
+        if (!AgentsUrls.isTrustedMediaOrigin(request.origin)) {
+            request.deny()
+            return
+        }
         val needed = mutableListOf<String>()
         if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in request.resources) {
             needed += Manifest.permission.CAMERA
@@ -229,6 +237,7 @@ class MainActivity : AppCompatActivity() {
             request.grant(request.resources)
             return
         }
+        pendingPermissionRequest?.deny()
         pendingPermissionRequest = request
         runtimePermissionLauncher.launch(missing.toTypedArray())
     }
@@ -279,8 +288,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun openExternally(url: String) {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            val intent = if (url.startsWith("intent:")) {
+                Intent.parseUri(url, Intent.URI_INTENT_SCHEME).apply {
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    component = null
+                    selector = null
+                }
+            } else {
+                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            }
+            startActivity(intent)
         } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show()
+        } catch (_: java.net.URISyntaxException) {
             Toast.makeText(this, R.string.open_failed, Toast.LENGTH_SHORT).show()
         }
     }
